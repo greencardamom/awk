@@ -3,18 +3,20 @@ Nim for awk programmers
 
 A library of awk functions in nim. 
 
-- Convert awk scripts to C without writing in C by using the nim macro language.
+- Convert awk scripts to C without coding in C by using the nim macro language.
 - Program in nim using the familair regex-enabled awk toolset.
-- For non-awk programers, use a small set of flexible regex tools from the awk world.
+- For nim programers, a small set of powerful regex tools from the awk world.
 
 Example awk program that prints the word "text":
 
 ```awk
-fp = readfile("data.txt")
-if(match(fp, "<a href=\"my text\">", dest)) {
-  split(dest[0], arr, "\"")
-  if(arr[2] ~ /text/)
-    print substr(arr[2], 3, length(arr[2])
+BEGIN{
+  str = "This is <a href=\"my text\">here</a>"
+  if(match(str, "<a href=\"my text\">", dest)) {
+    split(dest[0], arr, "\"")
+    if(arr[2] ~ /text/)
+      print substr(arr[2], 4, length(arr[2]))
+  }
 }
 ```
 
@@ -23,14 +25,14 @@ nim version:
 ```nim
 import awk
 
-var fp = readfile("data.txt")
-if(match(fp, "<a href=\"my text\">", dest) > 0):   
+var str = "This is <a href=\"my text\">here</a>"
+if(match(str, "<a href=\"my text\">", dest) > 0):   
   awk.split(dest, arr, "\"")
   if(arr[1] ~ "text"):
     echo awk.substr(arr[1], 3, len(arr[1]) - 1)  
 ```
 
-Nim compiles to C source using the nim compiler, which compiles to a standalone binary executable using gcc. The nim compile (c) and run (-r):
+Nim compiles to C source, which compiles to a standalone binary executable using gcc. The nim compile (c) and run (-r) command:
 
 ```
 nim c -r "test.nim"
@@ -38,6 +40,7 @@ text
 ```
 
 Most of the nim procs in this package deal with awk's regex functionality. Nim regex is based on the nre package which is Perl-regex compatible.
+
 
 Functions
 =========
@@ -67,7 +70,7 @@ if "george" ~ "ge.*?rge":
   echo "true" #=> true
 ```
 
->* and >>
+ >* and >>
 --------
 Write text to a file (append or overwrite)
 
@@ -216,7 +219,7 @@ patsplit(source: string, field: seq, pattern: string [, sep: seq]): int
 
 patsplit() behaves as follows:
 
-- The `field` (and `sep`) sequences must be created beforehand using "field = newSeq[string](0)" for example. 
+- The `field` (and `sep`) sequences must be created beforehand (see example how). 
 - Returns number of field elements found.
 - If no match found, `field` is set to the value of `source`
 
@@ -317,3 +320,7 @@ users[0].name = "John"
 users[0].phone = "202-222-0000"
 ```
 
+Getting started with nim
+========================
+- [How I Start](http://howistart.org/posts/nim/1) has good instructions for installing nim. It takes 5 minutes and everything is contained in a single directory.
+- [Nim Language](http://nim-lang.org/), official website.
