@@ -1,9 +1,9 @@
 Nim for awk programmers
 =======================
 
-A library of awk functions in nim. 
+A library of GNU awk functions in nim. 
 
-- Convert awk scripts to C without coding in C by using the nim macro language.
+- Convert GNU awk scripts to C without coding in C by using the nim macro language.
 - Program in nim using the familair regex-enabled awk toolset.
 - For nim programers, a small set of powerful regex tools from the awk world.
 
@@ -70,7 +70,7 @@ if "george" ~ "ge.*?rge":
   echo "true" #=> true
 ```
 
- >* and >>
+\>* and >>
 --------
 Write text to a file (append or overwrite)
 
@@ -324,3 +324,4 @@ Getting started with nim
 ========================
 - [How I Start](http://howistart.org/posts/nim/1) has good instructions for installing nim. It takes 5 minutes and everything is contained in a single directory.
 - [Nim Language](http://nim-lang.org/), official website.
+- [GNU awk manual](https://www.gnu.org/software/gawk/manual/gawk.html)
