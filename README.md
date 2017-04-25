@@ -41,6 +41,8 @@ text
 
 Most of the nim procs in this package deal with awk's regex functionality. Nim regex is based on the nre package which is Perl-regex compatible.
 
+Two versions included: awk.nim = Module re. awknre.nim = Module nre. The re module is significantly faster and recommended, but awknre.nim is included for backwards compat since the first version of this package used it and there may be some differences in regex syntax.
+
 
 Functions
 =========

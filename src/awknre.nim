@@ -1,10 +1,9 @@
-import strutils, re
+import nre, options, strutils
 
-discard """
-
+discard """ 
 The MIT License (MIT)
 
-Copyright (c) 2016-2017 by User:Green Cardamom (at en.wikipedia.org)
+Copyright (c) 2016 by User:Green Cardamom (at en.wikipedia.org)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +23,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE."""
 
-
-# Note: re.re() uses {} to ignore whitespace, see http://forum.nim-lang.org/t/213
-
-
 #
 # Match
 #
 #  match(source [string], pattern [regex])
 #  match(source [string], pattern [regex], dest [string])
 #
-#  Find regex 'pattern' in 'source'.
-#  Find regex 'pattern' in 'source' and store result in 'dest'.
+#  Find regex 'pattern' in 'source'. 
+#  Find regex 'pattern' in 'source' and store result in 'dest'. 
 #
 #  . An optional 'dest' string is created and filled with the results of the match. If already defined it's contents overwritten.
-#  . Return number of characters from start of string the match starts, beginning with 1 (not zero).
+#  . Return number of characters from start of string the match starts, beginning with 1 (not zero). 
 #  . Return 0 if no match
 #  . Consider using index() instead if 'pattern' is not a regex and not using a 'dest'
 #
@@ -56,16 +51,15 @@ proc match*(source: string, pattern: string): int =
     if source.len < 1 or pattern.len < 1:
       return 0
 
-    var
-      j: tuple[first: int, last: int]
-
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
-    if j.last > 0:
-      return j.first + 1
+    var found = nre.find(source,re("(?s)" & pattern))  
+    if found.isSome:                            
+      var j: Slice[int]
+      j = found.get.captureBounds[-1].get                            
+      return j.a + 1
     else:
       return 0
 
-proc makeDiscardable[T](a: T): T {.discardable.} = a
+proc makeDiscardable*[T](a: T): T {.discardable.} = a
 
 template match*(source, pattern: string, dest: untyped): int =
 
@@ -74,23 +68,24 @@ template match*(source, pattern: string, dest: untyped): int =
     if source.len < 1 or pattern.len < 1:
       makeDiscardable(0)
 
-    when compiles(dest):      
+    when compiles(dest):
       dest = ""
     else:
       var dest = ""
 
-    var
-      j: tuple[first: int, last: int]
-
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
-    if j.last > 0:
-      dest = system.substr(source, j.first, j.last)
-      makeDiscardable(j.first + 1)
-    else:               
+    var found = nre.find(source,re("(?s)" & pattern))
+    if isSome(found):
+      dest = $get(found)
+      var loc = index(source, dest)
+      if loc < 0:
+        makeDiscardable(0)
+      else:
+        makeDiscardable(loc + 1)
+    else:
       makeDiscardable(0)
 
 #
-#   ~ and !~
+#   ~ and !~ 
 #
 # regex (not) equal to
 #
@@ -104,33 +99,33 @@ template match*(source, pattern: string, dest: untyped): int =
 #
 proc `~`*(source, pattern: string): bool =
     if source.len < 1 and pattern.len < 1:
-      return true  
+      return true
     if source.len < 1 or pattern.len < 1:
       return false
-    if re.find(source, re.re("(?s)" & pattern, {})) != -1:
+    if source.find(re("(?s)" & pattern)).isSome:
       return true
-    return false                  
+    return false
 
 proc `!~`*(source, pattern: string): bool =
     if source.len < 1 and pattern.len < 1:
-      return false 
+      return false
     if source.len < 1 or pattern.len < 1:
       return true
-    if re.find(source, re.re("(?s)" & pattern, {})) != -1:
-      return false 
+    if source.find(re("(?s)" & pattern)).isSome:
+      return false
     return true
 
 #
-#  >
+#  > 
 #
 # Write 'text\n' to 'filename', overwrite previous content. Close on finish.
 #  example:
-#    "Hello" & " world" >* "/tmp/test.txt"
+#    "Hello" & " world" >* "/tmp/test.txt" 
 #    "Hello" >* "/dev/stderr"
 #
 proc `>*`*(text, filename: string): bool {.discardable.} =
   var text = text & "\n"
-  writeFile(filename, text)
+  writeFile(filename, text)    
 
 #
 # >>
@@ -140,10 +135,10 @@ proc `>*`*(text, filename: string): bool {.discardable.} =
 proc `>>`*(text, filename: string): bool {.discardable.} =
 
   var text = text & "\n"
-  var fp: File             
+  var fp: File
 
   try:
-    fp = open(filename, fmAppend)
+    fp = open(filename, fmAppend)    
   except:
     return false
 
@@ -157,22 +152,22 @@ proc `>>`*(text, filename: string): bool {.discardable.} =
 #
 #   split(source [string], dest [seq], match [regex])
 #
-#   Split 'source' along regex 'match' and store segments in 'dest'.
+#   Split 'source' along regex 'match' and store segments in 'dest'. 
 #
 #   . Returns the number of elements in 'dest'
-#   . 'dest' is a seq[] filled with results of the split.
-#   . The 'dest' seq is created by split, it does not need to exist before invoking split.
+#   . 'dest' is a seq[] filled with results of the split. 
+#   . The 'dest' seq is created by split, it does not need to exist before invoking split. 
 #   . If seq does exist, its contents will be overwritten.
 #   . The first element of 'dest' is 0.
 #   . If there are 0 splits, 'dest' will be 0-length
 #   . Because nim's system.split() has the same order and type of arguments it should be invoked as awk.split() to avoid ambiguity.
 #
 template split*(source: string, dest: untyped, match: string): int =
-
-  when compiles(dest):   
-    dest = re.split(source, re.re("(?s)" & match, {}))
+ 
+  when compiles(dest):
+    dest = nre.split(source, re("(?s)" & match))
   else:
-    var dest = re.split(source, re.re("(?s)" & match, {}))
+    var dest = nre.split(source, re("(?s)" & match))
 
   if dest[0] == source:  # no match
     delete(dest, 0)
@@ -181,7 +176,7 @@ template split*(source: string, dest: untyped, match: string): int =
     makeDiscardable(dest.len)
 
 #
-# Patsplit
+# Patsplit 
 #
 #   patsplit(source [string], field [seq], pattern [regex])
 #   patsplit(source [string], field [seq], pattern [regex], sep [seq])
@@ -215,49 +210,45 @@ template split*(source: string, dest: untyped, match: string): int =
 #
 proc patsplit*(source: string, field: var seq[string], pattern: string): int {.discardable.} =
 
-  var        
-    source = source 
-    i = 0
-    j: tuple[first: int, last: int]
-
   field = @[""]
+  var i = 0
 
-  while len(source) > 0:
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
-    if j.first > -1:
+  for found in source.findIter(re("(?s)" & pattern)):
+    if len(found.match) > 0:
       i.inc
-      field.insert(system.substr(source, j.first, j.last), i)
-      source = system.substr(source, j.last + 1, len(source) - 1)
-    else:
-      if len(source) > 0:                
-        source = ""
+      field.insert(found.match, i)
+
   if i > 0:
     field.delete(0)
-    result = i
-  else:
+    result = i 
+  else: 
     result = 0
 
 proc patsplit*(source: string, field: var seq[string], pattern: string, sep: var seq[string]): int {.discardable.} =
 
-  var
-    source = source
-    i = 0
-    j: tuple[first: int, last: int]
-
   field = @[""]
   sep = @[""]
+  var i, s, e, c = 0
+  var j: Slice[int] 
 
-  while len(source) > 0:
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}))
-    if j.first > -1:
+  for found in source.findIter(re("(?s)" & pattern)):
+    if len(found.match) > 0:
       i.inc
-      field.insert(system.substr(source, j.first, j.last), i)
-      sep.insert(system.substr(source, 0, j.first - 1), i)
-      source = system.substr(source, j.last + 1, len(source) - 1)
-    else:
-      if len(source) > 0:
-        sep.insert(source, i + 1)
-        source = ""
+      field.insert(found.match, i)
+      j = found.captureBounds[-1].get
+      if i == 1:
+        s = 0
+        e = j.a - 1
+        c = j.b
+      else:
+        s = c + 1
+        e = j.a - 1
+        c = j.b
+      sep.insert(system.substr(source, s, e), i)
+
+  if c > 0 or (c == 0 and i == 1):
+    sep.add(system.substr(source, j.b + 1, source.len))
+
   if i > 0:
     field.delete(0)
     sep.delete(0)
@@ -275,7 +266,7 @@ proc patsplit*(source: string, field: var seq[string], pattern: string, sep: var
 #  Given two seq's created by patsplit, recombine into a single string in alternating sequence ie. field[0] & seq[0] & field[1] & seq[1] etc.
 #
 #   . If field has more elements than sep, return ""
-#   . Typically used to recombine a string separated by patsplit()
+#   . Typically used to recombine a string separated by patsplit() 
 #
 #
 proc unpatsplit*(field, sep: seq[string]): string =
@@ -284,13 +275,12 @@ proc unpatsplit*(field, sep: seq[string]): string =
    if field.len > sep.len:
      return o
    for c in 0..field.len - 1:
-     if field[c].len > 0:
+     if field[c].len > 0:                      
        o = o & sep[c] & field[c]
-     else:
-       o = o & sep[c]
-   if sep[sep.len - 1].len > 0 and sep.len != field.len:
+   if sep[sep.len - 1].len > 0:
      o = o & sep[sep.len - 1]
    return o
+
 
 #
 # Sub
@@ -299,14 +289,14 @@ proc unpatsplit*(field, sep: seq[string]): string =
 #  sub(pattern [regex], replacement [string], source [string], occurance [int])
 #
 #  Substitute in-place the first occurance of regex 'pattern' with 'replacement' in 'source' string
-#  Substitute the Xth 'occurance'
+#  Substitute the Xth 'occurance'         
 #
 #   . If 'source' is not a declared variable (eg. literal string), sub() returns the new string but does not sub in-place (see example)
 #   . Substitutions are non-overlaping eg. sub("22","33","222222") => "333333" not "3333333333"
 #
 #  Example:
 #    str = "This is a sring"
-#    sub("[ ]is[ ]", " or ", str)                       # substitute 'str' in-place.
+#    sub("[ ]is[ ]", " or ", str)                       # substitute 'str' in-place. 
 #    echo str #=> "This or a string"
 #    echo sub("[ ]is[ ]", " or ", "This is a sring")    # doesn't sub the literal "This is a sring" in-place, returns the new string
 #
@@ -319,7 +309,7 @@ proc sub*(pattern, replacement: string, source: var string): string {.discardabl
     field[0] = replacement
     source = unpatsplit(field, sep)
   return source
-
+ 
 proc sub*(pattern, replacement, source: string): string {.discardable.} =
   if pattern.len == 0 or source.len == 0:
     return source
@@ -360,7 +350,7 @@ proc sub*(pattern, replacement, source: string, occurance: int): string {.discar
 #
 #  Example 1:
 #   str = "this is is string"
-#   gsub("[ ]is.*?st", " is a st", str)
+#   gsub("[ ]is.*?st", " is a st", str)            
 #   echo str #=> "this is a string"
 #
 #  Example 2:
@@ -370,36 +360,17 @@ proc sub*(pattern, replacement, source: string, occurance: int): string {.discar
 #  Caution: a self-reference will not produce expected results eg:  str = gsub(a, b, str)
 #
 #
-proc gsub*(pattern, replacement: string, source: var string): string {.discardable.} =
-  if pattern.len == 0 or source.len == 0:
-    return
-  source = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+proc gsub*(pattern, replacement: string, source: var string): string {.discardable.} =                                
+  if pattern.len == 0 or source.len == 0: 
+    return       
+  source = source.replace(re("(?s)" & pattern), replacement)
   return source
 
-proc gsub*(pattern, replacement, source: string): string =
-  if pattern.len == 0 or source.len == 0:
-    return source
-  return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+proc gsub*(pattern, replacement, source: string): string =                                         
+  if pattern.len == 0 or source.len == 0: 
+    return source 
+  return source.replace(re("(?s)" & pattern), replacement)   
 
-proc gsubs*(pattern, replacement: string, source: var string): string {.discardable.} =
-  if source == "":
-    return 
-  if pattern == "":
-    return 
-  source = replace(source, pattern, replacement)
-  return source
-
-#
-# Gsubs
-#
-# Consistently named wrapper for replace() - a literal string version of gsub
-#
-proc gsubs*(pattern, replacement, source: string): string =
-  if source == "":
-    return replacement
-  if pattern == "":
-    return source              
-  return replace(source, pattern, replacement)
 
 #
 # Substr
@@ -418,16 +389,15 @@ proc gsubs*(pattern, replacement, source: string): string =
 #
 # Example:
 #   echo awk.substr("Hello World", 3)
-#   > "lo World"
+#   > "lo World"    
 #   echo awk.substr("Hello World", 3, 2)
 #   > "lo"
 #
 #
 proc substr*(source: string, a: varargs[int]): string =
 
-  var 
-    length, start = -1
-    alen = a.len
+  var length, start = -1
+  var alen = a.len
 
   if alen < 1:
     return ""
@@ -437,18 +407,16 @@ proc substr*(source: string, a: varargs[int]): string =
   elif alen == 2:
     start = a[0]
     length = a[1]
-
+  
   if length > source.len:
     length = source.len
   if start < 0:
     start = 0
   if start > source.len or length < 1 or source.len < 1:
     return ""
-
-  var 
-    newsource = source
-    final = ""
-
+  
+  var newsource = source
+  var final = ""
   for i in 0..source.len - 1:
     if i >= start and i < start + length:
       add(final, newsource[i])
@@ -456,6 +424,7 @@ proc substr*(source: string, a: varargs[int]): string =
     return final
   else:
     return ""
+
 
 #
 # Index
@@ -467,7 +436,7 @@ proc substr*(source: string, a: varargs[int]): string =
 #    . if none found or error return -1
 #
 # Example
-#
+#   
 #    var loc = index("This is string", "is")
 #    echo loc #=> 2
 #
