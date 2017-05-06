@@ -39,14 +39,14 @@ nim c -r "test.nim"
 text
 ```
 
-Most of the nim procs in this package deal with awk's regex functionality. Nim regex is based on the nre package which is Perl-regex compatible.
+Most of the nim procs in this package deal with awk's regex functionality. 
 
 Versions
 =======
 
 Two versions are included: awk.nim uses the "re" module and awknre.nim uses the "nre" module.
 
-The re module is significantly faster and recommended, but awknre.nim is included for backwards compat since the first version of this package used it and there may be some differences in regex syntax.
+The re module is significantly faster and recommended, but awknre.nim is included for backwards compat since the first version of this package used it and there may be some differences in regex options.
 
 Functions
 =========
