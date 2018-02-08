@@ -1,13 +1,13 @@
 Nim for awk programmers
 =======================
 
-A library of GNU awk functions in nim. 
+A library of GNU awk functions for nim. Standard awk library functions written in and for nim.
 
-- Convert GNU awk scripts to C without coding in C by using the nim macro language.
 - Program in nim using the familair regex-enabled awk toolset.
 - For nim programers, a small set of powerful regex tools from the awk world.
+- Convert GNU awk scripts to C (and binary executable) without coding in C by using the nim macro language.
 
-Example awk program that prints the word "text":
+Awk and nim can look very similair. Example awk program that prints the word "text":
 
 ```awk
 BEGIN{
@@ -39,10 +39,10 @@ nim c -r "test.nim"
 text
 ```
 
-Most of the nim procs in this package deal with awk's regex functionality. 
-
 Versions
 =======
+
+Most of the nim procs in this package deal with awk's regex functionality. 
 
 Two versions are included: awk.nim uses the "re" module and awknre.nim uses the "nre" module.
 
@@ -305,25 +305,31 @@ Techniques
 
 associative arrays
 ------------------
-Nim does not support associative arrays as they exist in awk. In nim, dynamic arrays (called a "sequence" or seq) can be created using objects. 
+Awk uses associative arrays. Nim also supports associative arrays, called "tables". 
 
-For example in awk:
+For example in awk to uniqe a list of words:
 
 ```awk
-users[0]["name"] = "John"
-users[0]["phone"] = "202-222-0000"
+split("Blue Blue Red Green", arr, " ")        # Whoops, let's get rid of the extra "Blue"
+
+for(i in arr)
+  uarr[i] = 1
+for(i in uarr)
+  print i
 ```
 
-Converted to nim:
-
+The equivilent in Nim:
 ```nim
-type UsersObj = object
-  name: string
-  phone: string
-var users = newSeq[UsersObj]()
+import strutils, awk
 
-users[0].name = "John"
-users[0].phone = "202-222-0000"
+var 
+  arr = split("Blue Blue Red Green", " ")     # list of words containing a duplicate
+  uarr = initTable[string, int]()             # create empty table (associative array) to hold words
+
+for i in arr:                                 # unique the list
+  uarr[i] = 1
+for j in uarr.keys:                           # print the list     
+  echo j
 ```
 
 Getting started with nim
