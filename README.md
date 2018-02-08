@@ -320,7 +320,7 @@ for(i in uarr)
 
 The equivilent in Nim:
 ```nim
-import strutils, awk
+import strutils, tables
 
 var 
   arr = split("Blue Blue Red Green", " ")     # list of words containing a duplicate
