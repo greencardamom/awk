@@ -1,0 +1,7 @@
+2019 May 04   - fix bug in match()
+                 fix bug in proc '>>'
+                 add gsubi()
+                 add gsubs()
+2017 April 25 - change from nre to re
+                 fix bug in patsplit()
+2016 April 27 - first upload

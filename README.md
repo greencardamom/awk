@@ -158,7 +158,7 @@ Global substitute the regex `pattern` with `replacement` in the `source` string
 gsub(pattern: string, replacement: string, source: string): string
 ```
 
-- `pattern` is a regex (or literal) string
+- `pattern` is a regex string. For literal strings use gsubs()
 - `replacement` is the new text to replace the pattern text.
 - `source` is the source string.
 
@@ -185,6 +185,54 @@ str = "abc"
 str = gsub("b", "z", str)
 ```
 
+gsubi
+-----
+Global substitute the regex `pattern` with `replacement` in the `source` string, leaving the source string unmodified
+
+```nim
+gsubi(pattern: string, replacement: string, source: string): string
+```
+
+- `pattern` is a regex string. For literal strings use gsubs()
+- `replacement` is the new text to replace the pattern text.
+- `source` is the source string.
+
+gsubi() returns the new string but leaves the source string untouched.
+
+Example 1:
+```nim
+str = "this is is string"
+echo gsubi("[ ]is.*?st", " is a st", str)  #=> "this is a string"
+echo str #=> "this is is string"
+```
+
+gsubs
+-----
+Global substitute non-regex `pattern` with `replacement` in the `source` string. A literal version of gsub()
+
+```nim
+gsubs(pattern: string, replacement: string, source: string): string
+```
+
+- `pattern` is a literal string
+- `replacement` is the new text to replace the pattern text.
+- `source` is the source string.
+
+gsubs() returns the new string in addition to changing the source string in-place. It is discardable. 
+
+Example 1:
+```nim
+str = "this is is string"
+gsubs(" is is st", " is a st", str)   
+echo str #=> "this is a string"
+```
+
+Example 2:
+```nim
+echo gsubs(" is is st", " is a st", str)   
+=> "this is a string"
+```
+
 sub
 ----
 ```nim
@@ -194,7 +242,7 @@ sub(pattern: string, replacement: string, source: string [, occurance: int]): st
 Substitute in-place the first occurance of regex `pattern` with `replacement` in `source` string
 Optional `occurance` substitute at the Xth occurance.
 
-- `pattern` is a regex (or literal string) used in making the substitution
+- `pattern` is a regex used in making the substitution
 - `replacement` the new string 
 - `source` is the string matched against
 - `occurance` optional (default 1) which occurance to substitute

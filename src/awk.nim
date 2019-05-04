@@ -4,7 +4,7 @@ discard """
 
 The MIT License (MIT)
 
-Copyright (c) 2016-2017 by User:Green Cardamom (at en.wikipedia.org)
+Copyright (c) 2016-2019 by User:GreenC (at en.wikipedia.org)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,7 @@ proc match*(source: string, pattern: string): int =
       j: tuple[first: int, last: int]
 
     j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
-    if j.last > 0:
+    if j.first > -1:
       return j.first + 1
     else:
       return 0
@@ -83,10 +83,10 @@ template match*(source, pattern: string, dest: untyped): int =
       j: tuple[first: int, last: int]
 
     j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
-    if j.last > 0:
+    if j.first > -1:
       dest = system.substr(source, j.first, j.last)
       makeDiscardable(j.first + 1)
-    else:               
+    else:
       makeDiscardable(0)
 
 #
@@ -132,24 +132,23 @@ proc `>*`*(text, filename: string): bool {.discardable.} =
   var text = text & "\n"
   writeFile(filename, text)
 
-#
+# 
 # >>
-#
+#         
 # Append 'text\n' to 'filename'. Close on finish
-#
+#  
 proc `>>`*(text, filename: string): bool {.discardable.} =
 
-  var text = text & "\n"
-  var fp: File             
+  var
+    fp: File                
 
-  try:
-    fp = open(filename, fmAppend)
-  except:
+  if open(fp, filename, fmAppend):        
+    try:
+      writeLine(fp, text)
+    finally:
+      close(fp)
+  else:
     return false
-
-  write(fp, text)
-  flushFile(fp)
-  close(fp)
   return true
 
 #
@@ -367,7 +366,7 @@ proc sub*(pattern, replacement, source: string, occurance: int): string {.discar
 #   echo gsub("[ ]is.*?st", " is a st", "this is is string")
 #   => "this is a string"
 #
-#  Caution: a self-reference will not produce expected results eg:  str = gsub(a, b, str)
+#  Caution: a self-reference will not produce expected results eg:  str = gsub(a, b, str) - use gsubi() instead
 #
 #
 proc gsub*(pattern, replacement: string, source: var string): string {.discardable.} =
@@ -381,26 +380,46 @@ proc gsub*(pattern, replacement, source: string): string =
     return source
   return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
 
-proc gsubs*(pattern, replacement: string, source: var string): string {.discardable.} =
-  if source == "":
-    return 
-  if pattern == "":
-    return 
-  source = replace(source, pattern, replacement)
-  return source
-
-#
+#                
 # Gsubs
 #
 # Consistently named wrapper for replace() - a literal string version of gsub
-#
-proc gsubs*(pattern, replacement, source: string): string =
+#      
+proc gsubs*(pattern, replacement: string, source: var string): string {.discardable.} =
   if source == "":
+    return
+  if pattern == "":
+    return
+  source = re.replace(source, pattern, replacement)
+  return source
+
+proc gsubs*(pattern, replacement, source: string): string =          
+  if source == "":                  
     return replacement
   if pattern == "":
-    return source              
-  return replace(source, pattern, replacement)
+    return source
+  return re.replace(source, pattern, replacement)
 
+
+#
+# Gsubi
+#
+#  gsubi(pattern [regex], replacement [string], source [string])
+#
+#  Global substitute the regex 'pattern' with 'replacement' in 'source' string
+#  Returns the new string, leaving the source string unmodified
+#
+#  Example 1:
+#   str = "this is is string"
+#   echo gsub("[ ]is.*?st", " is a st", str)  #=> "this is a string"
+#   echo str #=> "this is is string"
+#
+#
+proc gsubi*(pattern, replacement, source: string): string =
+   if pattern.len == 0 or source.len == 0:
+     return source
+   return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+ 
 #
 # Substr
 #
