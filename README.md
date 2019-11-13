@@ -233,19 +233,6 @@ echo gsubs(" is is st", " is a st", str)
 => "this is a string"
 ```
 
-gsubi
------
-Global substitute non-regex `pattern` with `replacement`. A literal-string version of gsub()
-Same as gsub() but returns the new string, leaving the source string unmodified.
-
-Example 1:
-```str = "this is is string"
-echo gsubi("[ ]is.*?st", " is a st", str)  
-=> "this is a string"
-echo str 
-=> "this is is string"
-```
-
 sub
 ----
 ```nim
