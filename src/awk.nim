@@ -166,18 +166,21 @@ proc `>>`*(text, filename: string): bool {.discardable.} =
 #   . If there are 0 splits, 'dest' will be 0-length
 #   . Because nim's system.split() has the same order and type of arguments it should be invoked as awk.split() to avoid ambiguity.
 #
-template split*(source: string, dest: untyped, match: string): int =
+template split*(source, dest: untyped, match: string): int =
 
   when compiles(dest):   
     dest = re.split(source, re.re("(?s)" & match, {}))
   else:
     var dest = re.split(source, re.re("(?s)" & match, {}))
 
-  if dest[0] == source:  # no match
-    delete(dest, 0)
+  if source.len == 0:
     makeDiscardable(0)
   else:
-    makeDiscardable(dest.len)
+    if dest[0] == source:  # no match
+      delete(dest, 0)
+      makeDiscardable(0)
+    else:       
+      makeDiscardable(dest.len)
 
 #
 # Patsplit
@@ -366,7 +369,7 @@ proc sub*(pattern, replacement, source: string, occurance: int): string {.discar
 #   echo gsub("[ ]is.*?st", " is a st", "this is is string")
 #   => "this is a string"
 #
-#  Caution: a self-reference will not produce expected results eg:  str = gsub(a, b, str) - use gsubi() instead
+#  Caution: a self-reference will not produce expected results eg:  str = gsub(a, b, str) - use gsubi()
 #
 #
 proc gsub*(pattern, replacement: string, source: var string): string {.discardable.} =
@@ -380,27 +383,6 @@ proc gsub*(pattern, replacement, source: string): string =
     return source
   return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
 
-#                
-# Gsubs
-#
-# Consistently named wrapper for replace() - a literal string version of gsub
-#      
-proc gsubs*(pattern, replacement: string, source: var string): string {.discardable.} =
-  if source == "":
-    return
-  if pattern == "":
-    return
-  source = re.replace(source, pattern, replacement)
-  return source
-
-proc gsubs*(pattern, replacement, source: string): string =          
-  if source == "":                  
-    return replacement
-  if pattern == "":
-    return source
-  return re.replace(source, pattern, replacement)
-
-
 #
 # Gsubi
 #
@@ -411,14 +393,80 @@ proc gsubs*(pattern, replacement, source: string): string =
 #
 #  Example 1:
 #   str = "this is is string"
-#   echo gsub("[ ]is.*?st", " is a st", str)  #=> "this is a string"
+#   echo gsubi("[ ]is.*?st", " is a st", str)  #=> "this is a string"
 #   echo str #=> "this is is string"
 #
 #
 proc gsubi*(pattern, replacement, source: string): string =
-   if pattern.len == 0 or source.len == 0:
-     return source
-   return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+  if pattern.len == 0 or source.len == 0:
+    return source
+  return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+
+#                
+# Gsubs
+#
+# Consistently named wrapper for replace() - a literal-string version of gsub
+#      
+proc gsubs*(pattern, replacement: string, source: var string): string {.discardable.} =
+  if source == "":
+    return
+  if pattern == "":
+    return
+  source = strutils.replace(source, pattern, replacement)
+  return source
+
+proc gsubs*(pattern, replacement, source: string): string =          
+  if source == "":                  
+    return replacment
+  if pattern == "":
+    return source
+  return strutils.replace(source, pattern, replacement)
+
+#
+# Subs
+#
+#   subs(pattern [string], replacement [string], source [string])
+#
+# Non-regex version of sub(). Replaces first occurance of 'pattern' with 'replacement' in 'source'
+#
+#   . If 'source' is a literal string (not a variable) returns new string
+#     otherwise returns new string (discardable) and modifies 'source' in place
+#
+# Example:
+#   var s = "xxabxx"
+#   echo subs("ab", "AB", s) ==> "xxABxx"
+#   echo s ==> "xxABxx"
+#   echo subs("ab", "AB", "xxabxx") ==> "xxABxx"
+#
+
+proc subs*(pat, rep: string, str: var string): string {.discardable.} =
+
+    if str == "":
+      return
+    if pat == "":
+      return str
+
+    var i = strutils.find(str, pat)
+    if i > -1:
+      str = str[0 .. (i - 1)] & rep & str[(i + len(pat)) .. (len(str) - 1)]
+
+    return str
+
+proc subs*(pat, rep, str: string): string =
+
+    if str == "":
+      return
+    if pat == "":
+      return str
+
+    var
+      str = str
+
+    var i = strutils.find(str, pat)
+    if i > -1:
+      str = str[0 .. (i - 1)] & rep & str[(i + len(pat)) .. (len(str) - 1)]
+
+    return str
  
 #
 # Substr

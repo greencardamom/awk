@@ -1,3 +1,6 @@
+2019 Nov 12   - fix bug in split()
+                  fix bug in gsubs()
+                  add subs()
 2019 May 04   - fix bug in match()
                  fix bug in proc '>>'
                  add gsubi()

@@ -208,7 +208,7 @@ echo str #=> "this is is string"
 
 gsubs
 -----
-Global substitute non-regex `pattern` with `replacement` in the `source` string. A literal version of gsub()
+Global substitute non-regex `pattern` with `replacement` in the `source` string. A literal-string version of gsub()
 
 ```nim
 gsubs(pattern: string, replacement: string, source: string): string
@@ -231,6 +231,19 @@ Example 2:
 ```nim
 echo gsubs(" is is st", " is a st", str)   
 => "this is a string"
+```
+
+gsubi
+-----
+Global substitute non-regex `pattern` with `replacement`. A literal-string version of gsub()
+Same as gsub() but returns the new string, leaving the source string unmodified.
+
+Example 1:
+```str = "this is is string"
+echo gsubi("[ ]is.*?st", " is a st", str)  
+=> "this is a string"
+echo str 
+=> "this is is string"
 ```
 
 sub
@@ -257,6 +270,11 @@ sub("[ ]is[ ]", " or ", str)                       # substitute 'str' in-place.
 echo str #=> "This or a string"
 echo sub("[ ]is[ ]", " or ", "This is a sring")    # doesn't sub "This is a sring" in-place, returns a new string
 ```
+
+subs
+-----
+Single substitute non-regex `pattern` with `replacement` in the `source` string. A literal-string version of sub(). See gsubs() for documentation
+
 
 patsplit
 --------
