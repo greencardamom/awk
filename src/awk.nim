@@ -74,7 +74,7 @@ template match*(source, pattern: string, dest: untyped): int =
     if source.len < 1 or pattern.len < 1:
       makeDiscardable(0)
 
-    when compiles(dest):      
+    when compiles(dest):
       dest = ""
     else:
       var dest = ""
@@ -104,20 +104,20 @@ template match*(source, pattern: string, dest: untyped): int =
 #
 proc `~`*(source, pattern: string): bool =
     if source.len < 1 and pattern.len < 1:
-      return true  
+      return true
     if source.len < 1 or pattern.len < 1:
       return false
     if re.find(source, re.re("(?s)" & pattern, {})) != -1:
       return true
-    return false                  
+    return false
 
 proc `!~`*(source, pattern: string): bool =
     if source.len < 1 and pattern.len < 1:
-      return false 
+      return false
     if source.len < 1 or pattern.len < 1:
       return true
     if re.find(source, re.re("(?s)" & pattern, {})) != -1:
-      return false 
+      return false
     return true
 
 #
@@ -132,17 +132,17 @@ proc `>*`*(text, filename: string): bool {.discardable.} =
   var text = text & "\n"
   writeFile(filename, text)
 
-# 
+#
 # >>
-#         
+#
 # Append 'text\n' to 'filename'. Close on finish
-#  
+#
 proc `>>`*(text, filename: string): bool {.discardable.} =
 
   var
-    fp: File                
+    fp: File
 
-  if open(fp, filename, fmAppend):        
+  if open(fp, filename, fmAppend):
     try:
       writeLine(fp, text)
     finally:
@@ -168,7 +168,7 @@ proc `>>`*(text, filename: string): bool {.discardable.} =
 #
 template split*(source, dest: untyped, match: string): int =
 
-  when compiles(dest):   
+  when compiles(dest):
     dest = re.split(source, re.re("(?s)" & match, {}))
   else:
     var dest = re.split(source, re.re("(?s)" & match, {}))
@@ -179,7 +179,7 @@ template split*(source, dest: untyped, match: string): int =
     if dest[0] == source:  # no match
       delete(dest, 0)
       makeDiscardable(0)
-    else:       
+    else:
       makeDiscardable(dest.len)
 
 #
@@ -217,8 +217,8 @@ template split*(source, dest: untyped, match: string): int =
 #
 proc patsplit*(source: string, field: var seq[string], pattern: string): int {.discardable.} =
 
-  var        
-    source = source 
+  var
+    source = source
     i = 0
     j: tuple[first: int, last: int]
 
@@ -231,7 +231,7 @@ proc patsplit*(source: string, field: var seq[string], pattern: string): int {.d
       field.insert(system.substr(source, j.first, j.last), i)
       source = system.substr(source, j.last + 1, len(source) - 1)
     else:
-      if len(source) > 0:                
+      if len(source) > 0:
         source = ""
   if i > 0:
     field.delete(0)
@@ -402,11 +402,11 @@ proc gsubi*(pattern, replacement, source: string): string =
     return source
   return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
 
-#                
+#
 # Gsubs
 #
 # Consistently named wrapper for replace() - a literal-string version of gsub
-#      
+#
 proc gsubs*(pattern, replacement: string, source: var string): string {.discardable.} =
   if source == "":
     return
@@ -415,9 +415,9 @@ proc gsubs*(pattern, replacement: string, source: var string): string {.discarda
   source = strutils.replace(source, pattern, replacement)
   return source
 
-proc gsubs*(pattern, replacement, source: string): string =          
-  if source == "":                  
-    return replacment
+proc gsubs*(pattern, replacement, source: string): string =
+  if source == "":
+    return replacement
   if pattern == "":
     return source
   return strutils.replace(source, pattern, replacement)
@@ -467,7 +467,7 @@ proc subs*(pat, rep, str: string): string =
       str = str[0 .. (i - 1)] & rep & str[(i + len(pat)) .. (len(str) - 1)]
 
     return str
- 
+
 #
 # Substr
 #
@@ -492,7 +492,7 @@ proc subs*(pat, rep, str: string): string =
 #
 proc substr*(source: string, a: varargs[int]): string =
 
-  var 
+  var
     length, start = -1
     alen = a.len
 
@@ -512,7 +512,7 @@ proc substr*(source: string, a: varargs[int]): string =
   if start > source.len or length < 1 or source.len < 1:
     return ""
 
-  var 
+  var
     newsource = source
     final = ""
 
