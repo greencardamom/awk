@@ -1,10 +1,13 @@
+2023 Dec 15   - add exception handling for when regex string has syntax errors
+                  remove usage of the default "result" variable
+                  improvements in the subs() and gsubs() procs
 2019 Nov 12   - fix bug in split()
                   fix bug in gsubs()
                   add subs()
 2019 May 04   - fix bug in match()
-                 fix bug in proc '>>'
-                 add gsubi()
-                 add gsubs()
+                  fix bug in proc '>>'
+                  add gsubi()
+                  add gsubs()
 2017 April 25 - change from nre to re
-                 fix bug in patsplit()
+                  fix bug in patsplit()
 2016 April 27 - first upload

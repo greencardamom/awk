@@ -1,10 +1,11 @@
-import strutils, re
+import strutils except find
+import re
 
 discard """
 
-The MIT License (MIT)
+The MIT License (MIT) 
 
-Copyright (c) 2016-2019 by User:GreenC (at en.wikipedia.org)
+Copyright (c) 2016-2024 by User:GreenC (at en.wikipedia.org)        
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +25,60 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE."""
 
+# Notes  . re.re() uses {} to ignore whitespace, see http://forum.nim-lang.org/t/213
+#        . exception messages are sent by default to stderr - this can be modified via showException()
 
-# Note: re.re() uses {} to ignore whitespace, see http://forum.nim-lang.org/t/213
+#
+# showException
+#
+#  Display an exception error. Customize to stdout, logfile, all of these etc.
+#
+proc showException(msg: string) = 
+  try:
+    stderr.write(msg)
+  except Exception as e:
+    discard e.msg              # delima: where to send error msgs when there is an error writing to stderr
+
+#
+#  >*
+#
+# Write 'text\n' to 'filename', overwrite previous content. Close on finish.
+#  example:
+#    "Hello" & " world" >* "/tmp/test.txt"
+#    "Hello" >* "/dev/stderr"
+#
+proc `>*`*(text, filename: string): bool {.discardable.} =
+
+  var text = text & "\n"
+  try:
+    writeFile(filename, text)
+  except Exception as e:
+    showException(e.msg)
+    return false
+  return true
+    
+#
+# >>
+#
+# Append 'text\n' to 'filename'. Close on finish
+#
+proc `>>`*(text, filename: string): bool {.discardable.} =
+
+  var
+    fp: File
+
+  if open(fp, filename, fmAppend):
+    try:
+      writeLine(fp, text)
+    except Exception as e:
+      showException(e.msg)
+      close(fp)
+      return false
+    finally:
+      close(fp)
+  else:
+    return false
+  return true
 
 
 #
@@ -59,7 +112,12 @@ proc match*(source: string, pattern: string): int =
     var
       j: tuple[first: int, last: int]
 
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+    try:
+      j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+    except Exception as e:
+      showException(e.msg)
+      return 0
+     
     if j.first > -1:
       return j.first + 1
     else:
@@ -82,11 +140,16 @@ template match*(source, pattern: string, dest: untyped): int =
     var
       j: tuple[first: int, last: int]
 
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+    try:
+      j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+    except Exception as e:
+      showException(e.msg)
+      makeDiscardable(0)
+
     if j.first > -1:
       dest = system.substr(source, j.first, j.last)
       makeDiscardable(j.first + 1)
-    else:
+    else:               
       makeDiscardable(0)
 
 #
@@ -103,53 +166,42 @@ template match*(source, pattern: string, dest: untyped): int =
 #   if s ~ ("^" & re & "$"):
 #
 proc `~`*(source, pattern: string): bool =
+
     if source.len < 1 and pattern.len < 1:
       return true  
     if source.len < 1 or pattern.len < 1:
       return false
-    if re.find(source, re.re("(?s)" & pattern, {})) != -1:
+
+    var r = 0
+
+    try:
+      r = re.find(source, re.re("(?s)" & pattern, {}))
+    except Exception as e:
+      showException(e.msg)
+      return false
+
+    if r != -1:
       return true
     return false                  
 
 proc `!~`*(source, pattern: string): bool =
+
     if source.len < 1 and pattern.len < 1:
       return false 
     if source.len < 1 or pattern.len < 1:
       return true
-    if re.find(source, re.re("(?s)" & pattern, {})) != -1:
-      return false 
-    return true
 
-#
-#  >
-#
-# Write 'text\n' to 'filename', overwrite previous content. Close on finish.
-#  example:
-#    "Hello" & " world" >* "/tmp/test.txt"
-#    "Hello" >* "/dev/stderr"
-#
-proc `>*`*(text, filename: string): bool {.discardable.} =
-  var text = text & "\n"
-  writeFile(filename, text)
+    var r = 0
 
-# 
-# >>
-#         
-# Append 'text\n' to 'filename'. Close on finish
-#  
-proc `>>`*(text, filename: string): bool {.discardable.} =
-
-  var
-    fp: File                
-
-  if open(fp, filename, fmAppend):        
     try:
-      writeLine(fp, text)
-    finally:
-      close(fp)
-  else:
-    return false
-  return true
+      r = re.find(source, re.re("(?s)" & pattern, {}))
+    except Exception as e:
+      showException(e.msg)
+      return true
+
+    if r != -1:
+      return false
+    return true                
 
 #
 # Split
@@ -168,18 +220,27 @@ proc `>>`*(text, filename: string): bool {.discardable.} =
 #
 template split*(source, dest: untyped, match: string): int =
 
-  when compiles(dest):   
-    dest = re.split(source, re.re("(?s)" & match, {}))
+  when compiles(dest):
+    try:
+      dest = re.split(source, re.re("(?s)" & match, {}))
+    except Exception as e:
+      showException(e.msg)
+      makeDiscardable(0)
   else:
-    var dest = re.split(source, re.re("(?s)" & match, {}))
+    var dest: seq[string]
+    try:
+      dest = re.split(source, re.re("(?s)" & match, {}))
+    except Exception as e:
+      showException(e.msg)
+      makeDiscardable(0)
 
-  if source.len == 0:
+  if source.len == 0 or dest.len == 0:
     makeDiscardable(0)
   else:
     if dest[0] == source:  # no match
       delete(dest, 0)
       makeDiscardable(0)
-    else:       
+    else:
       makeDiscardable(dest.len)
 
 #
@@ -219,13 +280,19 @@ proc patsplit*(source: string, field: var seq[string], pattern: string): int {.d
 
   var        
     source = source 
-    i = 0
+    i,r = 0
     j: tuple[first: int, last: int]
 
   field = @[""]
 
   while len(source) > 0:
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+
+    try:
+      j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+    except Exception as e:
+      showException(e.msg)
+      return 0
+
     if j.first > -1:
       i.inc
       field.insert(system.substr(source, j.first, j.last), i)
@@ -233,24 +300,33 @@ proc patsplit*(source: string, field: var seq[string], pattern: string): int {.d
     else:
       if len(source) > 0:                
         source = ""
+
   if i > 0:
     field.delete(0)
-    result = i
+    r = i
   else:
-    result = 0
+    r = 0
+
+  return r
 
 proc patsplit*(source: string, field: var seq[string], pattern: string, sep: var seq[string]): int {.discardable.} =
 
   var
     source = source
-    i = 0
+    i,r = 0
     j: tuple[first: int, last: int]
 
   field = @[""]
   sep = @[""]
 
   while len(source) > 0:
-    j = re.findBounds(source, re.re("(?s)" & pattern, {}))
+
+    try:
+      j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+    except Exception as e:
+      showException(e.msg)
+      return 0
+
     if j.first > -1:
       i.inc
       field.insert(system.substr(source, j.first, j.last), i)
@@ -260,14 +336,17 @@ proc patsplit*(source: string, field: var seq[string], pattern: string, sep: var
       if len(source) > 0:
         sep.insert(source, i + 1)
         source = ""
+
   if i > 0:
     field.delete(0)
     sep.delete(0)
-    result = i
+    r = i
   else:
     field.insert(source, 1)
     field.delete(0)
-    result = 0
+    r = 0
+
+  return r
 
 #
 # Unpatsplit
@@ -375,13 +454,28 @@ proc sub*(pattern, replacement, source: string, occurance: int): string {.discar
 proc gsub*(pattern, replacement: string, source: var string): string {.discardable.} =
   if pattern.len == 0 or source.len == 0:
     return
-  source = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+
+  try:
+    source = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+  except Exception as e:
+    showException(e.msg)
+    return source
+
   return source
 
 proc gsub*(pattern, replacement, source: string): string =
+
   if pattern.len == 0 or source.len == 0:
     return source
-  return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+
+  var r = ""
+  try:
+    r = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+  except Exception as e:
+    showException(e.msg)
+    return source
+
+  return r
 
 #
 # Gsubi
@@ -398,29 +492,80 @@ proc gsub*(pattern, replacement, source: string): string =
 #
 #
 proc gsubi*(pattern, replacement, source: string): string =
+
   if pattern.len == 0 or source.len == 0:
     return source
-  return re.replace(source, re.re("(?s)" & pattern, {}), replacement)
 
-#                
+  var r = ""
+  try:
+    r = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+  except Exception as e:
+    showException(e.msg)
+    return source
+
+  return r
+
+#
 # Gsubs
 #
-# Consistently named wrapper for replace() - a literal-string version of gsub
-#      
+# A literal string version of gsub()
+#
+#  Mimic strutils.replace()
+#
 proc gsubs*(pattern, replacement: string, source: var string): string {.discardable.} =
-  if source == "":
-    return
-  if pattern == "":
-    return
-  source = strutils.replace(source, pattern, replacement)
-  return source
 
-proc gsubs*(pattern, replacement, source: string): string =          
-  if source == "":                  
-    return replacment
-  if pattern == "":
-    return source
-  return strutils.replace(source, pattern, replacement)
+    let patLen = pattern.len
+    if patLen == 0:
+      return source
+    if source == "":
+      return
+
+    var
+      r = ""
+      i, j = 0
+
+    while true:
+      try:
+        # j = boyerMooreHorspool(source, pattern, i)
+        j = strutils.find(source, pattern, i)
+      except Exception as e:
+        showException(e.msg)
+        return source
+      if j < 0:
+        break
+      add r, substr(source, i, j - 1)
+      add r, replacement
+      i = j + patLen
+    add r, substr(source, i)
+    source = r
+    return r
+
+proc gsubs*(pattern, replacement, source: string): string =
+
+    let patLen = pattern.len
+    if patLen == 0:
+      return source
+    if source == "":
+      return
+
+    var
+      r = ""
+      i, j = 0
+
+    while true:
+      try:
+        # j = boyerMooreHorspool(source, pattern, i)
+        j = strutils.find(source, pattern, i)
+      except Exception as e:
+        showException(e.msg)
+        return source
+      if j < 0:
+        break
+      add r, substr(source, i, j - 1)
+      add r, replacement
+      i = j + patLen
+    add r, substr(source, i)
+    return r
 
 #
 # Subs
@@ -436,38 +581,63 @@ proc gsubs*(pattern, replacement, source: string): string =
 #   var s = "xxabxx"
 #   echo subs("ab", "AB", s) ==> "xxABxx"
 #   echo s ==> "xxABxx"
-#   echo subs("ab", "AB", "xxabxx") ==> "xxABxx"
+#   echo subs("ab", "AB", "xxabxx") ==> "xxABxx" 
 #
 
-proc subs*(pat, rep: string, str: var string): string {.discardable.} =
+proc subs*(pattern, replacement: string, source: var string): string {.discardable.} =
 
-    if str == "":
+    let patLen = pattern.len
+    if patLen == 0:
+      return source
+    if source == "":
       return
-    if pat == "":
-      return str
-
-    var i = strutils.find(str, pat)
-    if i > -1:
-      str = str[0 .. (i - 1)] & rep & str[(i + len(pat)) .. (len(str) - 1)]
-
-    return str
-
-proc subs*(pat, rep, str: string): string =
-
-    if str == "":
-      return
-    if pat == "":
-      return str
 
     var
-      str = str
+      r = ""
+      i, j = 0        
 
-    var i = strutils.find(str, pat)
-    if i > -1:
-      str = str[0 .. (i - 1)] & rep & str[(i + len(pat)) .. (len(str) - 1)]
+    try:
+      # j = boyerMooreHorspool(source, pattern, i)
+      j = strutils.find(source, pattern, i)
+    except Exception as e:
+      showException(e.msg)
+      return source 
+    if j < 0:
+      return source
+    add r, substr(source, i, j - 1)
+    add r, replacement
+    i = j + patLen
+    add r, substr(source, i)
+    source = r
+    return r
 
-    return str
- 
+proc subs*(pattern, replacement, source: string): string =
+
+    let patLen = pattern.len
+    if patLen == 0:
+      return source
+    if source == "":
+      return               
+
+    var
+      r = ""
+      i, j = 0    
+
+    try:
+      # j = boyerMooreHorspool(source, pattern, i)
+      j = strutils.find(source, pattern, i)
+    except Exception as e:
+      showException(e.msg)
+      return source
+    if j < 0:
+      return source
+    add r, substr(source, i, j - 1)
+    add r, replacement
+    i = j + patLen
+    add r, substr(source, i)
+    return r
+
+#
 #
 # Substr
 #
@@ -540,6 +710,44 @@ proc substr*(source: string, a: varargs[int]): string =
 #
 #
 proc index*(source, target: string): int =
+
   if source.len == 0 or target.len == 0:
     return -1
-  result = strutils.find(source, target)
+  var r = 0
+  try:
+    r = strutils.find(source, target)
+  except Exception as e:
+    showException(e.msg)
+    return 0
+  return r
+
+#
+# An implementation of Boyer-Moore-Horspool string searching
+#  From Cello https://unicredit.github.io/cello/
+#  Copyright (2019) Andrea Ferretti, Apache License 2.0
+#  mimic strutils.find() 
+#
+#  NOT IN USE - reference only. Doesn't work.
+#
+proc boyerMooreHorspool*(target, query: string, start = 0): int =
+  let
+    m = len(query)
+    n = len(target)
+  if m > n: return -1
+  var skip = newSeq[int](257)
+  for i in 1 .. 256:
+    skip[i] = m
+  for k in 0 ..< (m - 1):
+    skip[query[k].int] = m - k - 1
+  var k = start + m - 1
+  while k < n:
+    var
+      j = m - 1
+      i = k
+    while j >= 0 and target[i] == query[j]:
+      dec(j)
+      dec(i)
+    if j == -1:
+      return i + 1
+    k += skip[target[k].int]
+  return -1
