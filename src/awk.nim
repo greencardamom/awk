@@ -49,11 +49,25 @@ proc showException(msg: string) =
 #
 proc `>*`*(text, filename: string): bool {.discardable.} =
 
-  var text = text & "\n"
+  var textWithNewline = text & "\n"
+
+  # Handle standard devices properly
+  if filename == "/dev/stderr":
+    try:
+      stderr.write(textWithNewline)
+      return true
+    except: return false
+  elif filename == "/dev/stdout":
+    try:
+      stdout.write(textWithNewline)
+      return true
+    except: return false
+
+  # For files on disk
   try:
-    writeFile(filename, text)
+    writeFile(filename, textWithNewline)
   except Exception as e:
-    showException(e.msg)
+    showException(">* | " & text & " | " & e.msg)
     return false
   return true
     
