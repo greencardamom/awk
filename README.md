@@ -287,9 +287,11 @@ Optional `occurance` substitute at the Xth occurance.
 - `source` is the string matched against
 - `occurance` optional (default 1) which occurance to substitute
 
-. If `source` is not a pre-declared variable, sub returns the new string but does not sub in-place
-. Substitutions are non-overlap eg. sub("22","33","222222") => "333333" not "3333333333"
-. Capture groups are supported, except when using `occurance`
+sub() behaves as follows:
+
+- If `source` is not a pre-declared variable, sub returns the new string but does not sub in-place
+- Substitutions are non-overlap eg. sub("22","33","222222") => "333333" not "3333333333"
+- Capture groups are supported, except when using `occurance`
 
 Example:
 ```nim
