@@ -1,6 +1,6 @@
      May 15   - add support for capture groups in match(), gsub(), gsubi(), sub()
                   re-wrote sub() 
-                  add new match() proc that supports capture groups
+                  re-wrote template match() 
 2026 Feb 27   - improve '>*' to better handle stderr and stdout
 2023 Dec 15   - add exception handling for when regex string has syntax errors
                   remove usage of the default "result" variable

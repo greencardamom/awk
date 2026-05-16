@@ -139,35 +139,8 @@ proc match*(source: string, pattern: string): int =
 
 proc makeDiscardable[T](a: T): T {.discardable.} = a
 
-template match*(source, pattern: string, dest: untyped): int =
-
-    if source.len < 1 and pattern.len < 1:
-      makeDiscardable(1)
-    if source.len < 1 or pattern.len < 1:
-      makeDiscardable(0)
-
-    when compiles(dest):      
-      dest = ""
-    else:
-      var dest = ""
-
-    var
-      j: tuple[first: int, last: int]
-
-    try:
-      j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
-    except Exception as e:
-      showException(e.msg)
-      makeDiscardable(0)
-
-    if j.first > -1:
-      dest = system.substr(source, j.first, j.last)
-      makeDiscardable(j.first + 1)
-    else:               
-      makeDiscardable(0)
-
 #
-# Match (Capture Groups)
+# Match (includes capture Groups)
 #
 #  match(source [string], pattern [regex], dest [var seq[string]])
 #
@@ -185,43 +158,81 @@ template match*(source, pattern: string, dest: untyped): int =
 #      echo caps[1] #=> "123"
 #      echo caps[2] #=> "456"
 #
-proc match*(source: string, pattern: string, dest: var seq[string]): int {.discardable.} =
-  if source.len < 1 or pattern.len < 1:
-    return 0
+template match*(source, pattern: string, dest: untyped): int =
 
-  var 
-    j: tuple[first: int, last: int]
-    matches: array[20, string] # std/re supports up to 20 subpatterns
+  when compiles(dest):
+    when typeof(dest) is seq[string]:
+      # --- NEW LOGIC: dest is a pre-declared seq[string] (Capture Groups) ---
+      if source.len < 1 and pattern.len < 1:
+        makeDiscardable(1)
+      elif source.len < 1 or pattern.len < 1:
+        makeDiscardable(0)
+      else:
+        var 
+          j_cap: tuple[first: int, last: int]
+          matches: array[20, string]
+        try:
+          let regex = re.re("(?s)" & pattern, {})
+          j_cap = re.findBounds(source, regex)
+          if j_cap.first > -1:
+            dest = newSeq[string]()
+            dest.add(system.substr(source, j_cap.first, j_cap.last))
+            discard re.find(source, regex, matches, 0)
+            
+            var lastCap = -1
+            for i in countdown(19, 0):
+              if matches[i] != "":
+                lastCap = i
+                break
+                
+            for i in 0 .. lastCap:
+              dest.add(matches[i])
+            makeDiscardable(j_cap.first + 1)
+          else:
+            makeDiscardable(0)
+        except Exception as e:
+          showException(e.msg)
+          makeDiscardable(0)
 
-  try:
-    let regex = re.re("(?s)" & pattern, {})
-    j = re.findBounds(source, regex)
-    
-    if j.first > -1:
-      dest = newSeq[string]()
-      # Index 0: The entire matched substring
-      dest.add(system.substr(source, j.first, j.last))
-      
-      # Fill the matches array with capture groups
-      discard re.find(source, regex, matches, 0)
-      
-      # Find the last non-empty capture group to avoid trailing empty elements
-      var lastCap = -1
-      for i in countdown(19, 0):
-        if matches[i] != "":
-          lastCap = i
-          break
+    else:
+      # --- EXISTING LOGIC: dest is a string or object property (e.g., WayLink[tag]) ---
+      if source.len < 1 and pattern.len < 1:
+        makeDiscardable(1)
+      elif source.len < 1 or pattern.len < 1:
+        makeDiscardable(0)
+      else:
+        dest = ""
+        var j: tuple[first: int, last: int]
+        try:
+          j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+        except Exception as e:
+          showException(e.msg)
+          makeDiscardable(0)
+        if j.first > -1:
+          dest = system.substr(source, j.first, j.last)
+          makeDiscardable(j.first + 1)
+        else:                
+          makeDiscardable(0)
           
-      # Add capture groups to the sequence
-      for i in 0 .. lastCap:
-        dest.add(matches[i])
-        
-      return j.first + 1
-  except Exception as e:
-    showException(e.msg)
-    return 0
-    
-  return 0
+  else:
+    # --- EXISTING LOGIC: dest is a completely undeclared identifier (Auto-inject var) ---
+    var dest = ""
+    if source.len < 1 and pattern.len < 1:
+      makeDiscardable(1)
+    elif source.len < 1 or pattern.len < 1:
+      makeDiscardable(0)
+    else:
+      var j: tuple[first: int, last: int]
+      try:
+        j = re.findBounds(source, re.re("(?s)" & pattern, {}) )
+      except Exception as e:
+        showException(e.msg)
+        makeDiscardable(0)
+      if j.first > -1:
+        dest = system.substr(source, j.first, j.last)
+        makeDiscardable(j.first + 1)
+      else:                
+        makeDiscardable(0)
 
 #
 #   ~ and !~
@@ -484,7 +495,7 @@ proc sub*(pattern, replacement: string, source: var string): string {.discardabl
 
   return source
 
-proc sub*(pattern, replacement, source: string): string =
+proc sub*(pattern, replacement, source: string): string {.discardable.} =
   if pattern.len == 0 or source.len == 0:
     return source
 
