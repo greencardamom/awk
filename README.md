@@ -110,6 +110,9 @@ proc match(source: string, pattern: string [, dest: string]): int
 - `source` is the string to match against.
 - `pattern` is the regex pattern.
 - `dest` is an optional string to hold the matched text. 
+
+match() behaves as follows:
+
 - If `dest` was not declared previously, it will be created. If it exists, match() will overwrite the contents with the results of the match.
 - The return value is the number of characters from the start, starting with 1, where the matched text is located, or 0 if no match.
 - Consider using index() instead assuming `pattern` is not a regex and not using `dest`, it's faster.
@@ -120,6 +123,35 @@ Example:
 import awk
 if match("this is a test a", "s.*?a", a) > 0:
   echo a #=> "s is a"   
+```
+
+match (capture groups)
+------
+Find regex `pattern` in `source` and optionally store result in `dest` seq.
+
+```nim
+proc match(source: string, pattern: string, dest: seq): int
+```
+
+- `source` is the string to match against.
+- `pattern` is the regex pattern.
+- `dest` is a seq to hold the matched text. dest[0] is the original string, and dest[1..x] are the captures.
+
+match() behaves as follows:
+
+- The `dest` seq must be declared beforehand (see example).
+- The return value is the number of characters from the start, starting with 1, where the matched text is located, or 0 if no match.
+- Consider using index() instead assuming `pattern` is not a regex and not using `dest`, it's faster.
+
+Example:
+
+```nim
+import awk
+var caps: seq[string]
+if awk.match("123-456", "([0-9]+)-([0-9]+)", caps) > 0:
+  echo caps[0] #=> "123-456"
+  echo caps[1] #=> "123"
+  echo caps[2] #=> "456"
 ```
 
 split
@@ -162,7 +194,10 @@ gsub(pattern: string, replacement: string, source: string): string
 - `replacement` is the new text to replace the pattern text.
 - `source` is the source string.
 
-gsub() returns the new string in addition to changing the source string in-place. It is discardable. 
+gsub() behaves as follows:
+
+- gsub() returns the new string in addition to changing the source string in-place. It is discardable. 
+- Capture groups are supported.
 
 If the source string is not a var (let, const or literal string) the source string is not modified in-place.
 
@@ -197,7 +232,10 @@ gsubi(pattern: string, replacement: string, source: string): string
 - `replacement` is the new text to replace the pattern text.
 - `source` is the source string.
 
-gsubi() returns the new string but leaves the source string untouched.
+gsubi() behaves as follows:
+
+- gsubi() returns the new string but leaves the source string untouched.
+- Capture groups are supported.
 
 Example 1:
 ```nim
@@ -218,7 +256,9 @@ gsubs(pattern: string, replacement: string, source: string): string
 - `replacement` is the new text to replace the pattern text.
 - `source` is the source string.
 
-gsubs() returns the new string in addition to changing the source string in-place. It is discardable. 
+gsubs() behaves as follows:
+
+- gsubs() returns the new string in addition to changing the source string in-place. It is discardable. 
 
 Example 1:
 ```nim
@@ -247,8 +287,9 @@ Optional `occurance` substitute at the Xth occurance.
 - `source` is the string matched against
 - `occurance` optional (default 1) which occurance to substitute
 
-If `source` is not a pre-declared variable, sub returns the new string but does not sub in-place
-Substitutions are non-overlap eg. sub("22","33","222222") => "333333" not "3333333333"
+. If `source` is not a pre-declared variable, sub returns the new string but does not sub in-place
+. Substitutions are non-overlap eg. sub("22","33","222222") => "333333" not "3333333333"
+. Capture groups are supported, except when using `occurance`
 
 Example:
 ```nim

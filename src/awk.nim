@@ -167,6 +167,63 @@ template match*(source, pattern: string, dest: untyped): int =
       makeDiscardable(0)
 
 #
+# Match (Capture Groups)
+#
+#  match(source [string], pattern [regex], dest [var seq[string]])
+#
+#  Find regex 'pattern' in 'source' and store the full match and capture groups in 'dest'.
+#
+#  . 'dest[0]' will contain the full matched string.
+#  . 'dest[1..N]' will contain the regex capture groups ($1, $2, etc.).
+#  . 'dest' must be declared as a seq[string] beforehand.
+#  . std/re limits the maximum number of capture groups to 20.
+#
+#  Example:
+#    var caps: seq[string]
+#    if awk.match("123-456", "([0-9]+)-([0-9]+)", caps) > 0:
+#      echo caps[0] #=> "123-456"
+#      echo caps[1] #=> "123"
+#      echo caps[2] #=> "456"
+#
+proc match*(source: string, pattern: string, dest: var seq[string]): int {.discardable.} =
+  if source.len < 1 or pattern.len < 1:
+    return 0
+
+  var 
+    j: tuple[first: int, last: int]
+    matches: array[20, string] # std/re supports up to 20 subpatterns
+
+  try:
+    let regex = re.re("(?s)" & pattern, {})
+    j = re.findBounds(source, regex)
+    
+    if j.first > -1:
+      dest = newSeq[string]()
+      # Index 0: The entire matched substring
+      dest.add(system.substr(source, j.first, j.last))
+      
+      # Fill the matches array with capture groups
+      discard re.find(source, regex, matches, 0)
+      
+      # Find the last non-empty capture group to avoid trailing empty elements
+      var lastCap = -1
+      for i in countdown(19, 0):
+        if matches[i] != "":
+          lastCap = i
+          break
+          
+      # Add capture groups to the sequence
+      for i in 0 .. lastCap:
+        dest.add(matches[i])
+        
+      return j.first + 1
+  except Exception as e:
+    showException(e.msg)
+    return 0
+    
+  return 0
+
+#
 #   ~ and !~
 #
 # regex (not) equal to
