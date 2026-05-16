@@ -396,8 +396,9 @@ proc unpatsplit*(field, sep: seq[string]): string =
 #  Substitute in-place the first occurance of regex 'pattern' with 'replacement' in 'source' string
 #  Substitute the Xth 'occurance'
 #
-#   . If 'source' is not a declared variable (eg. literal string), sub() returns the new string but does not sub in-place (see example)
-#   . Substitutions are non-overlaping eg. sub("22","33","222222") => "333333" not "3333333333"
+#  . If 'source' is not a declared variable (eg. literal string), sub() returns the new string but does not sub in-place (see example)
+#  . Substitutions are non-overlaping eg. sub("22","33","222222") => "333333" not "3333333333"
+#  . Capture groups are supported, except when using 'occurance'
 #
 #  Example:
 #    str = "This is a sring"
@@ -409,19 +410,41 @@ proc unpatsplit*(field, sep: seq[string]): string =
 proc sub*(pattern, replacement: string, source: var string): string {.discardable.} =
   if pattern.len == 0 or source.len == 0:
     return source
-  var field, sep = newSeq[string](0)
-  if patsplit(source, field, pattern, sep) > 0:
-    field[0] = replacement
-    source = unpatsplit(field, sep)
+
+  try:
+    let regex = re.re("(?s)" & pattern, {})
+    let j = re.findBounds(source, regex)
+    
+    if j.first > -1:
+      # Extract only the matched portion to evaluate capture groups
+      let matchedSegment = system.substr(source, j.first, j.last)
+      let evaluatedReplacement = re.replacef(matchedSegment, regex, replacement)
+      
+      # Stitch the string back together
+      source = system.substr(source, 0, j.first - 1) & evaluatedReplacement & system.substr(source, j.last + 1)
+  except Exception as e:
+    showException(e.msg)
+
   return source
 
-proc sub*(pattern, replacement, source: string): string {.discardable.} =
+proc sub*(pattern, replacement, source: string): string =
   if pattern.len == 0 or source.len == 0:
     return source
-  var field, sep = newSeq[string](0)
-  if patsplit(source, field, pattern, sep) > 0:
-    field[0] = replacement
-    return unpatsplit(field, sep)
+
+  try:
+    let regex = re.re("(?s)" & pattern, {})
+    let j = re.findBounds(source, regex)
+    
+    if j.first > -1:
+      # Extract only the matched portion to evaluate capture groups
+      let matchedSegment = system.substr(source, j.first, j.last)
+      let evaluatedReplacement = re.replacef(matchedSegment, regex, replacement)
+      
+      # Stitch the string back together
+      return system.substr(source, 0, j.first - 1) & evaluatedReplacement & system.substr(source, j.last + 1)
+  except Exception as e:
+    showException(e.msg)
+
   return source
 
 proc sub*(pattern, replacement: string, source: var string, occurance: int): string {.discardable.} =
@@ -470,7 +493,7 @@ proc gsub*(pattern, replacement: string, source: var string): string {.discardab
     return
 
   try:
-    source = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+    source = re.replacef(source, re.re("(?s)" & pattern, {}), replacement)
   except Exception as e:
     showException(e.msg)
     return source
@@ -484,7 +507,7 @@ proc gsub*(pattern, replacement, source: string): string =
 
   var r = ""
   try:
-    r = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+    r = re.replacef(source, re.re("(?s)" & pattern, {}), replacement)
   except Exception as e:
     showException(e.msg)
     return source
@@ -512,7 +535,7 @@ proc gsubi*(pattern, replacement, source: string): string =
 
   var r = ""
   try:
-    r = re.replace(source, re.re("(?s)" & pattern, {}), replacement)
+    r = re.replacef(source, re.re("(?s)" & pattern, {}), replacement)
   except Exception as e:
     showException(e.msg)
     return source

@@ -1,3 +1,5 @@
+     May 15   - add support for capture groups in gsub(), gsubi(), sub()
+                  re-wrote sub()  
 2026 Feb 27   - improve '>*' to better handle stderr and stdout
 2023 Dec 15   - add exception handling for when regex string has syntax errors
                   remove usage of the default "result" variable
