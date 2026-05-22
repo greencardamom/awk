@@ -443,17 +443,17 @@ proc patsplit*(source: string, field: var seq[string], pattern: string, sep: var
 #
 proc unpatsplit*(field, sep: seq[string]): string =
 
-   var o = ""
+   var result = ""
    if field.len > sep.len:
-     return o
+     return result
    for c in 0..field.len - 1:
      if field[c].len > 0:
-       o = o & sep[c] & field[c]
+       result = result & sep[c] & field[c]
      else:
-       o = o & sep[c]
+       result = result & sep[c]
    if sep[sep.len - 1].len > 0 and sep.len != field.len:
-     o = o & sep[sep.len - 1]
-   return o
+     result = result & sep[sep.len - 1]
+   return result
 
 #
 # Sub
@@ -826,33 +826,3 @@ proc index*(source, target: string): int =
     return 0
   return r
 
-#
-# An implementation of Boyer-Moore-Horspool string searching
-#  From Cello https://unicredit.github.io/cello/
-#  Copyright (2019) Andrea Ferretti, Apache License 2.0
-#  mimic strutils.find() 
-#
-#  NOT IN USE - reference only. Doesn't work.
-#
-proc boyerMooreHorspool*(target, query: string, start = 0): int =
-  let
-    m = len(query)
-    n = len(target)
-  if m > n: return -1
-  var skip = newSeq[int](257)
-  for i in 1 .. 256:
-    skip[i] = m
-  for k in 0 ..< (m - 1):
-    skip[query[k].int] = m - k - 1
-  var k = start + m - 1
-  while k < n:
-    var
-      j = m - 1
-      i = k
-    while j >= 0 and target[i] == query[j]:
-      dec(j)
-      dec(i)
-    if j == -1:
-      return i + 1
-    k += skip[target[k].int]
-  return -1
